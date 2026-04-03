@@ -2,11 +2,16 @@
 
 This repository contains algorithms to train deep neural networks, using scans of freehand ultrasound image frames acquired with ground-truth frame locations from external spatial trackers. The aim is to reconstruct the spatial frame locations or relative transformation between them, on the newly acquired scans.
 
-<!-- The most up-to-date code is in the `dev1` branch, where the `train.py` and `test.py` under the `scripts` folder can be adapted with local data path.  -->
-
+**Use "zenodo_get" to download the data (see STEP 4) or do below manually.**
 
 The data can be downloaded [here](https://doi.org/10.5281/zenodo.7740734).
 We have collected a new large freehand ultrasound dataset and are organising MICCAI2024&2025 Challenges [TUS-REC Challenge](https://github-pages.ucl.ac.uk/tus-rec-challenge/). Check [Part 1](https://zenodo.org/records/11178509) and [Part 2](https://zenodo.org/records/11180795) of the training dataset for TUS-REC2024, and [Train Data](https://zenodo.org/records/15224704) for TUS-REC2025. 
+
+
+To visualize the data (Freehand_US_data.zip), just drop the "mha" file into [3D Slicer](https://www.slicer.org/). 
+![Freehand_US_data in 3D Slicer](image/3dslicer.jpg)
+
+
 
 ## Steps to run the code
 ### 1. Clone the repository.
@@ -31,6 +36,9 @@ conda create -n FUS python=3.9.13
 conda activate FUS
 pip install -r requirements.txt
 ```
+
+[Note] **To enable calculation in GPU, you need to install PyTorch with GPU properly**.
+See the [How to setup your GPU](GPU_SETUP.md)
 
 <!-- ### 5. Create directories.
 ```
@@ -82,6 +90,10 @@ python scripts/train.py
 python scripts/test.py
 ```
 
+The results are stored in the “results” folder. Examples of estimated poses overlaid on the ground truth are shown below.
+![alt text](image/2.png)
+
+<hr>
 
 If you find this code or data set useful for your research, please consider citing some of the following works:
 

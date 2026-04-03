@@ -13,8 +13,22 @@ from freehand.transform import LabelTransform, TransformAccumulation, Prediction
 from freehand.utils import *
 
 
+# GPU Configuration
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
-device = 'cpu'
+    
+# Check CUDA availability
+if torch.cuda.is_available():
+    device = torch.device('cuda')
+    print(f"GPU detected: {torch.cuda.get_device_name(0)}")
+    print(f"CUDA device count: {torch.cuda.device_count()}")
+    print(f"GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1e9:.2f} GB")
+    torch.cuda.empty_cache()  # Clear GPU cache
+else:
+    device = torch.device('cpu')
+    print("Warning: CUDA not available. Using CPU for training.")
+    print("For GPU support, install PyTorch with CUDA: pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118")
+    
+print(f"Using device: {device}\n")
 
 RESAMPLE_FACTOR = 4
 FILENAME_CALIB = "data/calib_matrix.csv"
@@ -90,7 +104,7 @@ for i_scan in range(len(dset_test)):
     frames, tforms, tforms_inv = dset_test[SCAN_INDEX]
     frames, tforms, tforms_inv = (torch.tensor(t).to(device) for t in [frames,tforms,tforms_inv])
     
-    predictions_allpts = torch.zeros((frames.shape[0],3,frame_points.shape[-1]))
+    predictions_allpts = torch.zeros((frames.shape[0],3,frame_points.shape[-1]), device=device)
 
     data_pairs_all = data_pairs_cal_label(frames.shape[0])
     transform_label = LabelTransform(
@@ -108,7 +122,7 @@ for i_scan in range(len(dset_test)):
     interval_pred = data_pairs[PAIR_INDEX][1] - data_pairs[PAIR_INDEX][0]
 
 
-    tform_1to0 = torch.eye(4) 
+    tform_1to0 = torch.eye(4, device=device)
     predictions_allpts[idx_f0+1] = labels_allpts[0]
     while 1:
         frames_test = frames[idx_f0:idx_f0+NUM_SAMPLES,...]
@@ -117,7 +131,7 @@ for i_scan in range(len(dset_test)):
 
         tform_2to1 =  transform_prediction(outputs_test)[0,PAIR_INDEX]
         preds_val, tform_1to0 = accumulate_prediction(tform_1to0, tform_2to1)
-        predictions_allpts[idx_f0+1] = preds_val.cpu()
+        predictions_allpts[idx_f0+1] = preds_val
         
         idx_f0 += interval_pred
         idx_p1 += interval_pred 
@@ -128,5 +142,14 @@ for i_scan in range(len(dset_test)):
         predictions_allpts[idx_f0:,...] = predictions_allpts[idx_f0-1].expand(predictions_allpts[idx_f0:,...].shape[0],-1,-1)
 
     # plot trajactory
-    scan_plot_gt_pred(labels_allpts.numpy(),predictions_allpts.detach().numpy(),SAVE_PATH +'/'+'plotting'+'/' + str(i_scan),color = 'g',width = 4, scatter = 8, legend_size=50, legend = 'GT')
+    scan_plot_gt_pred(
+        labels_allpts.detach().cpu().numpy(),
+        predictions_allpts.detach().cpu().numpy(),
+        SAVE_PATH +'/'+'plotting'+'/' + str(i_scan),
+        color='g',
+        width=4,
+        scatter=8,
+        legend_size=50,
+        legend='GT'
+    )
 
