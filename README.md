@@ -16,7 +16,7 @@ To visualize the data (Freehand_US_data.zip), just drop the "mha" file into [3D 
 ## Steps to run the code
 ### 1. Clone the repository.
 ```
-git clone https://github.com/ucl-candi/freehand.git
+git clone https://github.com/PuChan-HCI/freehand.git
 ```
 
 ### 2. Navigate to the root directory.
