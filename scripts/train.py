@@ -40,8 +40,8 @@ if __name__ == '__main__':
     # training
     MINIBATCH_SIZE = 32
     LEARNING_RATE = 1e-4
-    # NUM_EPOCHS = int(1e6)
-    NUM_EPOCHS = int(1e2)
+    # NUM_EPOCHS_DEFAULT = int(1e6)
+    NUM_EPOCHS = int(1e6)
 
     # algorithm
     PRED_TYPE = "parameter"  # {"transform", "parameter", "point"}
