@@ -10,7 +10,7 @@
 
 \geometry{margin=2.5cm}
 
-\title{\textbf{Master Thesis Outline} \\ Loop Closure and Pose Graph Optimization for Sensorless Freehand 3D Ultrasound Reconstruction}
+\title{\textbf{Master Thesis Outline} \\  Pose Graph Optimization with Loop Closure for Sensorless Freehand 3D Ultrasound Reconstruction}
 \author{Jannis Meyer}
 \date{\today}
 
@@ -19,46 +19,56 @@
 \maketitle
 
 \section{Background and Motivation}
-Three-dimensional (3d) ultrasound (UR) allows for better and more precise diagnosis than simple 2d UR. As dedicated 3d UR scanners come with high costs, low convenience and lower image resolution compared to 2d UR, the concept of reconstructing 3d UR from freehand 2d UR images gained prominence. These are acquired by freehand-sweeping a standard 2d UR probe over the designated area. 3d UR reconstruction includes estimating the pose of the probe, acquiring images and with that doing the actual volumetric reconstruction. For pose estimation, the field has evolved from simply tracking the probe to using speckle correlation and finally to using deep learning methods (DL).\\
-Current research focuses on solely feeding US images to DL models for pose estimation, without utilizing data from external sensors, tracking devices or Inertial Measurement Units (IMUs). The training data being used consists of 2d US images acquired from either only linear sweeps or linear, S-shaped and C-shaped sweeps in most cases. The most common error which is used for performance and comparison is Final Drift (FD), which is the reconstruction error of the final frame of a scan, created by the accumulated reconstruction errors over all frames. While state-of-the-art models showcase very low FD on the mentioned scan shapes, research on reconstruction quality for scans featuring frame redundancy, meaning circle shaped and back-and-forth shaped sweeps, is rare and includes using external sensors or IMUs together with DL for pose estimation.\\
-This work aims to tackle this research gap by assessing 3d UR reconstruction quality using a combination of DL and global optimization techniques (Loop Closure and Pose Graph Estimation in particular), especially regarding the reconstruction of circular and back-and-forth sweeps. The main research question reads as:\\
+Three-dimensional (3d) ultrasound (UR) allows for better and more precise diagnosis than simple 2d UR. As dedicated 3d UR scanners come with high costs, low convenience and lower image resolution compared to 2d UR, the concept of reconstructing 3d UR from freehand 2d UR images gained prominence. These are acquired by freehand-sweeping a standard 2d UR probe over the designated area. 3d UR reconstruction includes acquiring images, estimating the pose of the probe for each one and with that doing the actual volumetric reconstruction. For pose estimation, the field has evolved from simply tracking the probe to using speckle correlation and finally to using Deep Learning (DL) methods.\\
+Current research focuses on solely feeding US images to DL models for pose estimation (vision-only), without utilizing data from external sensors, tracking devices or Inertial Measurement Units (IMUs). The most common error which is used for performance and comparison is Final Drift (FD), which is the reconstruction error of the final frame of a scan, created by the accumulated reconstruction errors over all frames. State-of-the-art models use Transformers, CNNs and extraction of local and global features for pose estimation, while methods utilizing a graph-based approach are rarer and often include the usage of external sensors or IMUs together with DL.\\
+In graph-based methods each frame can be represented by a node in a graph with pose $T_i$, while the edges (or constraints) represent the pairwise transformation $T_{ij}$ between two frames $i$ and $j$. Frames have certain features by which these can be distinguished from one another. If two non-adjacent frames exhibit the same features at the same pixel positions, it can be assumed that the probe has reached an already known position and thus a loop closure (LC) has been performed. Now, the two pose estimations of the respective frames can be compared and thus the graph and overall trajectory can be corrected. The standard cost function $e_{ij}$ for this is\\
+\begin{equation}
+e_{ij} = \log \left( T_{ij}^{-1} \cdot (T_i^{-1} T_j) \right).
+\end{equation}
+This work aims to conduct research on using pose graph optimization to improve pose estimation performance for 3d freehand UR reconstruction, especially regarding LC, meaning the presence of frame redundancy in a scan, e.g. in back-and-forth or circular sweeps. The main research question reads as:\\
 
-\noindent\textit{How will global optimization techniques help improve the performance of DL-only based methods for pose estimation in the context of 3d UR reconstruction regarding scans featuring frame redundancy?}
+\noindent\textit{How will pose graph optimization help decrease pose reconstruction error for 3d UR reconstruction using vision-only methods?}
 
 \section{Setup}
 As time is scarce, already existing data and pre-trained models will be used. This research might include fine-tuning or extra training of a model, if time allows it, but most of the work will happen at the inference stage.
 
 \subsection{Model}
-The model being used as base line and for further development is the one proposed in \href{https://github.com/ucl-candi/freehand}{this} repository. It uses an EfficientNet-B1 as a backbone with a fully connected layer at the end which feeds parameters to a volume reconstruction module. FD seems rather poor compared to other models (the papers mentioned in the repository are not clear on the quantitative performance of the public model, though images of example reconstructions show an approximate FD Rate, which is the FD divided by total scan length, of 15\%). This potential for improvement is important for this work as it gives room for comparison. 
+Two models were assigned as base lines and for further development, with each showcasing good but still improvable pose reconstruction error, which leaves room for meaningful improvement.\\
+\textbf{\href{https://github.com/ucl-candi/freehand}{<No Name>}:} This model uses an EfficientNet-B1 as a backbone with a fully connected layer at the end which feeds parameters to a volume reconstruction module. The papers mentioned in the repository are not clear on the quantitative performance of the public model, though images of example reconstructions show an approximate FD Rate, which is the FD divided by total scan length, of 15\%, which comes out at an FD of 30mm for an estimated scan length of 200mm (this is yet to be properly evaluated).\\
+\textbf{\href{https://github.com/DIAL-RPI/FreehandUSRecon}{DCLNet}:} This model is built on a ResNeXt model together with a self-attention module to focus on speckle-rich areas. \href{https://arxiv.org/pdf/2509.09530}{This} paper reports a FD of 11.68mm for the TUS-REC2024 data set for this model.
 
 \subsection{Data}
-Two data sets were found fitting for this research, providing back-and-forth-sweeps and circular sweeps respectively:\\
-\textbf{\href{https://zenodo.org/records/7740734}{Freehand\_US\_data}:} This data set includes twelve forearm scans from 19 volunteers, with a total scan length of 100-200mm. Straight, C-shaped and S-shaped sweeps were used to acquire the data. Redundancy in a scan may be artificially created by mirroring straight sweeps or duplicating parts of a scan. The data set was used for training and testing (split) the model mentioned before, which makes it suitable for comparison.\\
-\textbf{\href{https://tdsc-abus2023.grand-challenge.org/Dataset/}{ABUS Data Set}}: This data set contains 200 volumes of breast tissue for breast cancer detection, acquired by a fixed, circular UR scanner. As the data does not stem from freehand UR scanning and serves the purpose of detection rather than reconstruction, measures have to be taken. Firstly, the data is 3d, so 2d data has to extracted by slicing up volumetric data and assigning pose information by adequate calculation. Furthermore, artificial noise has to be added to mimic freehand scanning, as the scans were performed by a fixed scanner. Data sets for 3d reconstruction specifically featuring circular scans could not be found, which is why the proposed data set has to suffice.\\
-A similar alternatives to this is \href{https://ipeusctdb1.ipe.kit.edu/~usct/challenge/?page_id=183}{2D CSIC/UCM USCT}, for which a scanner moving around a tissue phantom was used. This data is 2d, meaning only artificial noise would have to be added.
+Two relevant data sets were found, providing back-and-forth-sweeps and circular sweeps:\\
+\textbf{\href{https://zenodo.org/records/7740734}{Freehand\_US\_data}:} This data set includes twelve forearm scans each from 19 volunteers, with a total scan length of 100-200mm. Straight, C-shaped and S-shaped sweeps were used to acquire the data. The data set was used for training and testing the <No Name> model mentioned before.\\
+\textbf{\href{https://zenodo.org/records/11178509}{TUS-REC2024\_Training\_Data}:} This data set features straight, C-shaped and S-shaped sweeps conducted in a back-and-forth manner and served as the training data for the TUS-REC2024 challenge. The data set was published by the same researchers responsable for the TUS-REC challenges, which makes it a good fit for comaprison.\\
+Optional:\\
+\textbf{\href{https://tdsc-abus2023.grand-challenge.org/Dataset/}{ABUS Data Set}}: This data set contains 200 volumes of breast tissue for breast cancer detection, acquired by a fixed, circular UR scanner. As the data does not stem from freehand UR scanning and serves the purpose of detection rather than reconstruction, measures would have to be taken. Firstly, the data is 3d, so 2d data has to extracted by slicing up volumetric data and assigning pose information by adequate calculation. Furthermore, artificial noise has to be added to mimic freehand scanning, as the scans were performed by a fixed scanner. Data sets for 3d reconstruction specifically featuring circular scans could not be found, artificial data acquired from this data set could be used as a proof-of-concept for the proposed research.\\
 
 \section{Methodology and Expected Outcome}
-As stated, the main objective of this research is the performance enhancement from global optimization techniques for freehand 3d US reconstruction using DL only. For that, several methods shall be compared:
+As stated, the main objective of this research is the performance enhancement from graph optimization techniques for vision-only freehand 3d US reconstruction. For that, several methods could be evaluated and compared:
 \begin{itemize}
-\item Base Line: Raw proposed DL model on both data sets from last step
-\item DL model + Pose Graph Optimization: Tested on both data sets
-\item DL model + Pose Graph Optimization with Loop Closure: Tested on ABUS data set (circular motion only)
-\item DL model + Optical Flow : Tested on both data sets (optional)
+\item Base Line: Raw proposed DL models on both relevant data sets from last step
+\item Pose Graph Optimization with LC: LC contraints, Short- and Long-Range Constraints (Tij for non-adjacent, non-LC nodes at varying distance), Dense Contraints (Tij between many nodes), Weighted Contraints (weights to change impact of a constraint on graph)
+\item LC detection: NCC (pixelwise comparison of frames) and SSIM (comparison of pixels, contrast, brightness), Cosine Similarity between feature vectors of frames (from DL model)
+\item Graph Types for optimization: Global/whole graph, key frame-based graph (not every frame is a node)
 \end{itemize}
 
-Statistics for comparing (e.g. averaged four corners of a frame as reference point):
+\noindent Possible statistics for comparison (e.g. averaged four corners of a frame as reference point):
 \begin{itemize}
-\item FD and FD Rate (especially at loop closure of circular data)
-\item Average reconstruction error over all frames
-\item Maximum reconstruction error of a scan over all frames
-\item Volumetric error between reconstructed and ground truth volume
+\item FD and FD Rate
+\item Local Precision Error (averaged error between estimated and Ground Truth (GT) transformation between two frames)
+\item Global Precision Error (average pose error over all frame)
+\item Maximum pose error of a scan over all frames
+\item Volumetric error between reconstructed and GT volume
 \end{itemize}
+
+It is to find out if and how these pose optimization methods influence the pose estimation performance of vision-only 3d reconstruction. The graph optimization will happen at inference stage, meaning the base model will likely not be retrained or altered (other than for acquiring feature vectors/additional output other than pose estimations).
 
 \section{Limitations and Concerns}
 \begin{itemize}
 \item Dependency on performance of open-source model and quality of publically available data
-\item Artificial redundancy-featuring data
-\item Global optimization techniques not increasing performance
+\item Graph optimization techniques may not increase performance
+\item No actual training or optimization of a DL model, focus is on graph optimization, little DL part in research
 \item Limited time
 \end{itemize}
 
