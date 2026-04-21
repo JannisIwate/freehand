@@ -47,6 +47,10 @@ saved_results = 'seq_len' + str(NUM_SAMPLES) + '__' + 'lr' + str(LEARNING_RATE)\
 SAVE_PATH = os.path.join('results', saved_results)
 if not os.path.exists(os.path.join(os.getcwd(),SAVE_PATH,'plotting')):
     os.makedirs(os.path.join(os.getcwd(),SAVE_PATH,'plotting'))
+if not os.path.exists(os.path.join(os.getcwd(),SAVE_PATH,'pose_data')):
+    os.makedirs(os.path.join(os.getcwd(),SAVE_PATH,'pose_data'))
+if not os.path.exists(os.path.join(os.getcwd(),SAVE_PATH,'features')):
+    os.makedirs(os.path.join(os.getcwd(),SAVE_PATH,'features'))
 FILENAME_TEST = "fold_04.json"
 FILENAME_WEIGHTS = "best_validation_dist_model"
 
@@ -101,10 +105,13 @@ for i_scan in range(len(dset_test)):
     PAIR_INDEX = 0  # which prediction to use
     START_FRAME_INDEX = 0  # starting frame - the reference 
 
+    # load frames
     frames, tforms, tforms_inv = dset_test[SCAN_INDEX]
     frames, tforms, tforms_inv = (torch.tensor(t).to(device) for t in [frames,tforms,tforms_inv])
     
+    # prepare predictions and data pairs for transformation
     predictions_allpts = torch.zeros((frames.shape[0],3,frame_points.shape[-1]), device=device)
+    features_allpts = []
 
     data_pairs_all = data_pairs_cal_label(frames.shape[0])
     transform_label = LabelTransform(
@@ -113,21 +120,25 @@ for i_scan in range(len(dset_test)):
             image_points=frame_points,
             tform_image_to_tool=tform_calib
             )
+    
+    # prepare GT labels
     labels_allpts = torch.squeeze(transform_label(tforms[None,...], tforms_inv[None,...]))
     
-    
+    # 
     idx_f0 = START_FRAME_INDEX # this is the reference starting frame for network prediction 
-    idx_p0 = idx_f0 + data_pairs[PAIR_INDEX][0] # this is the reference frame for transformaing others to
+    #idx_p0 = idx_f0 + data_pairs[PAIR_INDEX][0] # this is the reference frame for transforming others to
     idx_p1 = idx_f0 + data_pairs[PAIR_INDEX][1]
     interval_pred = data_pairs[PAIR_INDEX][1] - data_pairs[PAIR_INDEX][0]
 
 
     tform_1to0 = torch.eye(4, device=device)
     predictions_allpts[idx_f0+1] = labels_allpts[0]
+
     while 1:
         frames_test = frames[idx_f0:idx_f0+NUM_SAMPLES,...]
         frames_test = frames_test/255
-        outputs_test = model(frames_test.unsqueeze(0)) 
+        outputs_test, features_test = model(frames_test.unsqueeze(0)) 
+        features_allpts.append(features_test)
 
         tform_2to1 =  transform_prediction(outputs_test)[0,PAIR_INDEX]
         preds_val, tform_1to0 = accumulate_prediction(tform_1to0, tform_2to1)
@@ -137,11 +148,11 @@ for i_scan in range(len(dset_test)):
         idx_p1 += interval_pred 
         if (idx_f0+NUM_SAMPLES) > frames.shape[0]:
             break
-
     if NUM_SAMPLES > 2:
         predictions_allpts[idx_f0:,...] = predictions_allpts[idx_f0-1].expand(predictions_allpts[idx_f0:,...].shape[0],-1,-1)
+        features_allpts.extend([features_allpts[idx_f0 - 1]] * (predictions_allpts.shape[0] - len(features_allpts)))
 
-    # plot trajactory
+    # plot trajectory
     scan_plot_gt_pred(
         labels_allpts.detach().cpu().numpy(),
         predictions_allpts.detach().cpu().numpy(),
@@ -151,5 +162,18 @@ for i_scan in range(len(dset_test)):
         scatter=8,
         legend_size=50,
         legend='GT'
-    )
+    )    
 
+    break
+# save gt and predictions
+torch.save(predictions_allpts.detach().cpu(), os.path.join(SAVE_PATH +'/'+'pose_data', 'predictions.pt'))
+torch.save(labels_allpts.detach().cpu(), os.path.join(SAVE_PATH +'/'+'pose_data', 'labels.pt'))
+
+# save features
+features_allpts = torch.stack(features_allpts, dim=0)
+torch.save(features_allpts.detach().cpu(), os.path.join(SAVE_PATH +'/'+'features','features_allpts.pt'))
+
+#print("output shape:", outputs_test.shape)
+#print("features shape:", len(features_allpts))
+#print("labels_allpts shape:", labels_allpts.shape)
+#print("predictions_allpts shape:", predictions_allpts.shape)

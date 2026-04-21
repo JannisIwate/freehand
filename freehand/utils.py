@@ -1,5 +1,6 @@
 
 import torch,os
+import numpy as np
 from matplotlib import pyplot as plt
 
 
@@ -10,7 +11,6 @@ def pair_samples(num_samples, num_pred):
         For each "pred" frame, pairs are formed with every one previous frame 
     """
     return torch.tensor([[n0,n1] for n1 in range(num_samples-num_pred,num_samples) for n0 in range(n1)])
-
 
 
 def type_dim(label_pred_type, num_points=None, num_pairs=1):
@@ -142,7 +142,28 @@ def scan_plot_gt_pred(gt,pred,saved_name,color,width = 4, scatter = 8, legend_si
     plt.savefig(saved_name +'.png')
     plt.close()
 
+def scan_plot_gt_pred(gt,pred,saved_name,color,width = 4, scatter = 8, legend_size=50,legend = None):
+    # plot the scan in 3D
+
+    fig = plt.figure(figsize=(35,15))
+    axs=[]
+    for i in range(1):
+        axs.append(fig.add_subplot(1,1,i+1,projection='3d'))
+    plt.tight_layout()
+
+    scan_plot(gt,axs,'g',width, scatter, legend_size,legend = 'gt')
+    scan_plot(pred,axs,'r',width, scatter, legend_size,legend = 'pred')
+
+    plt.savefig(saved_name +'.png')
+    plt.close()
+
+def save_predictions_gt(gt,pred,saved_name_pred,saved_name_gt):
+    torch.save(pred, saved_name_pred)
+    torch.save(gt, saved_name_gt)
+    #np.save(os.path.join(saved_name_pred, 'predictions.npy'), pred)
+    #np.save(os.path.join(saved_name_gt, 'labels.npy'), gt)
+
 def data_pairs_cal_label(num_frames):
-    # obtain the data_pairs to compute the tarnsfomration between frames and the reference (first) frame
+    # obtain the data_pairs to compute the transformation between frames and the reference (first) frame
     
     return torch.tensor([[0,n0] for n0 in range(num_frames)])
