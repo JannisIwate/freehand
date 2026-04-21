@@ -12,7 +12,8 @@ from data.calib import read_calib_matrices
 from freehand.transform import LabelTransform, TransformAccumulation, PredictionTransform
 from freehand.utils import *
 
-
+print(torch.version.cuda)
+print(torch.cuda.get_arch_list())
 # GPU Configuration
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
     
@@ -111,7 +112,8 @@ for i_scan in range(len(dset_test)):
     
     # prepare predictions and data pairs for transformation
     predictions_allpts = torch.zeros((frames.shape[0],3,frame_points.shape[-1]), device=device)
-    features_allpts = []
+    predictions_alltransforms = torch.zeros((frames.shape[0],4,4), device=device)
+    features_allpts = [] # store as list as feature dimension is not determined
 
     data_pairs_all = data_pairs_cal_label(frames.shape[0])
     transform_label = LabelTransform(
@@ -137,12 +139,13 @@ for i_scan in range(len(dset_test)):
     while 1:
         frames_test = frames[idx_f0:idx_f0+NUM_SAMPLES,...]
         frames_test = frames_test/255
-        outputs_test, features_test = model(frames_test.unsqueeze(0)) 
+        outputs_test, features_test = model(frames_test.unsqueeze(0))
         features_allpts.append(features_test)
 
-        tform_2to1 =  transform_prediction(outputs_test)[0,PAIR_INDEX]
+        tform_2to1 = transform_prediction(outputs_test)[0,PAIR_INDEX]
         preds_val, tform_1to0 = accumulate_prediction(tform_1to0, tform_2to1)
         predictions_allpts[idx_f0+1] = preds_val
+        predictions_alltransforms[idx_f0+1] = tform_2to1
         
         idx_f0 += interval_pred
         idx_p1 += interval_pred 
@@ -151,6 +154,7 @@ for i_scan in range(len(dset_test)):
     if NUM_SAMPLES > 2:
         predictions_allpts[idx_f0:,...] = predictions_allpts[idx_f0-1].expand(predictions_allpts[idx_f0:,...].shape[0],-1,-1)
         features_allpts.extend([features_allpts[idx_f0 - 1]] * (predictions_allpts.shape[0] - len(features_allpts)))
+        predictions_alltransforms[idx_f0:,...] = predictions_alltransforms[idx_f0-1].expand(predictions_alltransforms[idx_f0:,...].shape[0],-1,-1)
 
     # plot trajectory
     scan_plot_gt_pred(
@@ -165,15 +169,16 @@ for i_scan in range(len(dset_test)):
     )    
 
     break
-# save gt and predictions
+# save pose and transform data
 torch.save(predictions_allpts.detach().cpu(), os.path.join(SAVE_PATH +'/'+'pose_data', 'predictions.pt'))
 torch.save(labels_allpts.detach().cpu(), os.path.join(SAVE_PATH +'/'+'pose_data', 'labels.pt'))
+torch.save(predictions_alltransforms.detach().cpu(), os.path.join(SAVE_PATH +'/'+'pose_data', 'predictions_transforms.pt'))
 
 # save features
 features_allpts = torch.stack(features_allpts, dim=0)
 torch.save(features_allpts.detach().cpu(), os.path.join(SAVE_PATH +'/'+'features','features_allpts.pt'))
 
-#print("output shape:", outputs_test.shape)
-#print("features shape:", len(features_allpts))
-#print("labels_allpts shape:", labels_allpts.shape)
-#print("predictions_allpts shape:", predictions_allpts.shape)
+print("Transform predictions shape:", predictions_alltransforms.shape)
+print("features shape:", len(features_allpts))
+print("labels_allpts shape:", labels_allpts.shape)
+print("predictions_allpts shape:", predictions_allpts.shape)
