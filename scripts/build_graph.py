@@ -13,8 +13,8 @@ from gtsam import NonlinearFactorGraph, Values, noiseModel
 # -----------------------------
 BASE_PATH = os.path.join(os.getcwd(), "results", "seq_len10__lr0.0001__pred_type_parameter__label_type_point")
 
-abs_poses_torch = torch.load(BASE_PATH + '/pose_data/predictions.pt')              # (N, 4, 4)
-rel_poses_torch = torch.load(BASE_PATH + '/pose_data/predictions_transforms.pt')   # (N, 3, 4)
+abs_poses_torch = torch.load(BASE_PATH + '/pose_data/predictions.pt')              # (N, 3, 4)
+rel_poses_torch = torch.load(BASE_PATH + '/pose_data/predictions_transforms.pt')   # (N, 4, 4)
 
 N = abs_poses_torch.shape[0]
 

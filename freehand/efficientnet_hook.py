@@ -9,9 +9,9 @@ class EfficientNetFeatureRet(torch.nn.Module):
         def hook(module, input, output):
             self._features = output
 
-        self.handle = self.model.features.register_forward_hook(hook)
+        self.handle = self.model.features.register_forward_hook(hook) # attach hook to feature extractor of passed model
 
-    def forward(self, x):
+    def forward(self, x): # override forward to return features along with preds
         self._features = None
         out = self.model(x)
         return out, self._features

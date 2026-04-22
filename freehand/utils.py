@@ -2,7 +2,6 @@
 import torch,os
 import numpy as np
 from matplotlib import pyplot as plt
-#from gtsam import Pose3, Rot3, Point3
 
 
 def pair_samples(num_samples, num_pred):
@@ -168,16 +167,3 @@ def data_pairs_cal_label(num_frames):
     # obtain the data_pairs to compute the transformation between frames and the reference (first) frame
     
     return torch.tensor([[0,n0] for n0 in range(num_frames)])
-
-# def mat4_to_pose3(T):
-#     T = T.cpu().numpy()
-#     R = Rot3(T[:3, :3])
-#     t = Point3(*T[:3, 3])
-#     return Pose3(R, t)
-
-# def mat34_to_pose3(T):
-#     """Convert 3x4 -> Pose3"""
-#     T = T.cpu().numpy()
-#     R = Rot3(T[:, :3])
-#     t = Point3(*T[:, 3])
-#     return Pose3(R, t)

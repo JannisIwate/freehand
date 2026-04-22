@@ -130,7 +130,6 @@ for i_scan in range(len(dset_test)):
     # prepare GT labels
     labels_allpts = torch.squeeze(transform_label(tforms[None,...], tforms_inv[None,...]))
     
-    # 
     idx_f0 = START_FRAME_INDEX # this is the reference starting frame for network prediction 
     #idx_p0 = idx_f0 + data_pairs[PAIR_INDEX][0] # this is the reference frame for transforming others to
     idx_p1 = idx_f0 + data_pairs[PAIR_INDEX][1]
@@ -138,7 +137,7 @@ for i_scan in range(len(dset_test)):
 
 
     tform_1to0 = torch.eye(4, device=device)
-    predictions_allpts[idx_f0+1] = labels_allpts[0]
+    predictions_allpts[idx_f0+1] = labels_allpts[0] # labels start with non-zero values I think
 
     while 1:
         frames_test = frames[idx_f0:idx_f0+NUM_SAMPLES,...]
@@ -150,9 +149,16 @@ for i_scan in range(len(dset_test)):
         preds_val, tform_1to0 = accumulate_prediction(tform_1to0, tform_2to1)
         predictions_allpts[idx_f0+1] = preds_val
         predictions_alltransforms[idx_f0+1] = tform_2to1
+        print("tform_2to1:\n", tform_2to1)
+        print("tform_1to0:\n", tform_1to0)
+        print("preds_val:\n", preds_val)
+        print("labels_allpts:\n", labels_allpts[idx_f0])
+        print("labels_allpts next:\n", labels_allpts[idx_f0+1])
+        print("outputs_test:\n", outputs_test)
         
         idx_f0 += interval_pred
-        idx_p1 += interval_pred 
+        idx_p1 += interval_pred
+        break
         if (idx_f0+NUM_SAMPLES) > frames.shape[0]:
             break
     if NUM_SAMPLES > 2:
@@ -173,16 +179,14 @@ for i_scan in range(len(dset_test)):
     )    
 
     break
-# save pose and transform data
+# save collected data
 torch.save(predictions_allpts.detach().cpu(), os.path.join(SAVE_PATH +'/'+'pose_data', 'predictions.pt'))
 torch.save(labels_allpts.detach().cpu(), os.path.join(SAVE_PATH +'/'+'pose_data', 'labels.pt'))
 torch.save(predictions_alltransforms.detach().cpu(), os.path.join(SAVE_PATH +'/'+'pose_data', 'predictions_transforms.pt'))
-
-# save features
 features_allpts = torch.stack(features_allpts, dim=0)
 torch.save(features_allpts.detach().cpu(), os.path.join(SAVE_PATH +'/'+'features','features_allpts.pt'))
 
-print("Transform predictions shape:", predictions_alltransforms.shape)
+print("Transform predictions shape:", predictions_alltransforms.shape) # (N, 4, 4)
 print("features shape:", len(features_allpts))
-print("labels_allpts shape:", labels_allpts.shape)
-print("predictions_allpts shape:", predictions_allpts.shape)
+print("labels_allpts shape:", labels_allpts.shape) # (N, 3, 4)
+print("predictions_allpts shape:", predictions_allpts.shape) # (N, 3, 4)
