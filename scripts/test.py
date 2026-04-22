@@ -4,8 +4,10 @@ from matplotlib import pyplot as plt
 import torch
 from torchvision.models import efficientnet_b1
 import sys
+
 sys.path.append(os.getcwd())
 
+from freehand.efficientnet_hook import EfficientNetFeatureRet
 from freehand.loader import SSFrameDataset
 from freehand.network import build_model
 from data.calib import read_calib_matrices
@@ -97,6 +99,8 @@ model = build_model(
     ).to(device)
 model.load_state_dict(torch.load(os.path.join(SAVE_PATH,'saved_model',FILENAME_WEIGHTS), map_location=torch.device(device)))
 model.train(False)
+
+model = EfficientNetFeatureRet(model)
 
 
 ## inference
