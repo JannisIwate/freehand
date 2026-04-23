@@ -8,7 +8,7 @@ BASE_PATH = os.path.join(os.getcwd(), "results", "seq_len10__lr0.0001__pred_type
 
 abs_pose_preds = torch.load(BASE_PATH + '/pose_data/predictions.pt')
 # (N, 3, 4), x y z for four corner points
-rel_transformation_preds = torch.load(BASE_PATH + '/pose_data/predictions_transforms.pt')
+rel_transformation_preds = torch.load(BASE_PATH + '/pose_data/predictions_transforms_locaL.pt')
 # (N, 4, 4), rot in [0:2, 0:2], translation in [0:3, 3], lower row is [0,0,0,1]
 i = 1
 # print(abs_pose_preds[i])
@@ -31,20 +31,25 @@ def check_internal_consistency(pred_pts, pred_T, use_inverse=False):
     N = pred_pts.shape[0]
     errors = []
 
-    for i in range(N - 1):
-        pose_i = pred_pts[i]
-        pose_next_gt = pred_pts[i+1]
+    for i in range(N - 2):
+        pose_i = pred_pts[i+1]
+        pose_next = pred_pts[i+2]
         T = pred_T[i+1]   # matches your indexing (you stored at idx_f0+1)
 
         if use_inverse:
             T = torch.inverse(T)
 
-        pose_next_pred = apply_transform(T, pose_i)
+        pose_check = apply_transform(T, pose_i)
+        # print("T:\n", T)
+        # print("pose_next:\n", pose_next)
+        # print("pose_i:\n", pose_i)
+        # print("pose_check:\n", pose_check)
+        
 
-        err = compute_error(pose_next_pred, pose_next_gt)
+        err = compute_error(pose_check, pose_next)
         errors.append(err.item())
+        #break
 
-        #print(f"{i} → {i+1} error: {err:.6f}")
 
     errors = torch.tensor(errors)
 

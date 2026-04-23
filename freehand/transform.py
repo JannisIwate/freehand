@@ -259,4 +259,5 @@ class TransformAccumulation:
         
         tform_tool2_to_tool0 = torch.matmul(tform_tool1_to_tool0, tform_tool2_to_tool1)
         # tform_tool2_to_image0 = torch.matmul(self.tform_tool_to_image, tform_tool2_to_tool0)
+        #print(torch.matmul(tform_tool2_to_tool0, self.image_points_in_tool)[0:3,:]) # three coordinates, forth row is just "device='cuda:0'"
         return torch.matmul(tform_tool2_to_tool0, self.image_points_in_tool)[0:3,:], tform_tool2_to_tool0
