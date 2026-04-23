@@ -6,7 +6,9 @@ import gtsam
 import sys
 sys.path.append(os.getcwd())
 from freehand.utils import *
-from gtsam import NonlinearFactorGraph, Values, noiseModel, Rot3, Point3, Pose3
+from gtsam import NonlinearFactorGraph, Values, noiseModel
+
+#TODO build graph from GT and compare
 
 # -----------------------------
 # Load data
@@ -16,36 +18,11 @@ BASE_PATH = os.path.join(os.getcwd(), "results", "seq_len10__lr0.0001__pred_type
 abs_poses_torch = torch.load(BASE_PATH + '/pose_data/predictions.pt')            # (N, 3, 4), element (frame), row (coordinate), column (corner)
 rel_poses_torch = torch.load(BASE_PATH + '/pose_data/predictions_transforms_local.pt') # (N, 4, 4)
 
+# remove initial zero element
+abs_poses_torch = abs_poses_torch[1:]
+rel_poses_torch = rel_poses_torch[1:-1] # remove last element as it is not needed
+
 N = abs_poses_torch.shape[0]
-
-def pose3_to_mat4(pose):
-    R = pose.rotation().matrix()
-    t = pose.translation()
-
-    T = np.eye(4)
-    T[:3, :3] = R
-    T[:3, 3] = [t.x(), t.y()]
-
-    return T
-
-
-def mat4_to_pose3(T):
-    T = T.cpu().numpy()
-
-    R = Rot3(T[:3, :3])
-    t = Point3(*T[:3, 3])
-
-    return Pose3(R, t)
-
-
-def mat34_to_pose3(T):
-    """Convert 3x4 -> Pose3"""
-    T = T.cpu().numpy()
-
-    R = Rot3(T[:3, :3])
-    t = Point3(*T[:3, 3])
-
-    return Pose3(R, t)
 
 # -----------------------------
 # Build graph
@@ -60,12 +37,12 @@ odom_noise  = noiseModel.Diagonal.Sigmas(np.array([0.05]*6))
 # -----------------------------
 # Insert nodes (absolute poses)
 # -----------------------------
-for i in range(N-1):
-    pose = mat4_to_pose3(abs_poses_torch[i+1])
+for i in range(N):
+    pose = mat4_to_pose3(abs_poses_torch[i])
     initial.insert(i, pose)
 
 # -----------------------------
-# Anchor first pose
+# Anchor first pose, prior
 # -----------------------------
 graph.add(
     gtsam.PriorFactorPose3(
@@ -82,8 +59,8 @@ graph.add(
 # rel_poses_torch[i] should represent T_{i -> i+1}
 # So we connect i -> i+1
 
-for i in range(N - 1):
-    rel_pose = mat34_to_pose3(rel_poses_torch[i+1])
+for i in range(N-1): # one less edge than nodes (without prior)
+    rel_pose = mat34_to_pose3(rel_poses_torch[i])
 
     graph.add(
         gtsam.BetweenFactorPose3(
@@ -94,7 +71,7 @@ for i in range(N - 1):
         )
     )
 
-print(f"Graph: {graph.size()} factors, {N-1} poses")
+print(f"Graph: {graph.size()} factors, {N} poses")
 
 # -----------------------------
 # Optimize (optional)
@@ -106,31 +83,39 @@ result = optimizer.optimize()
 # -----------------------------
 # Extract trajectory
 # -----------------------------
-# def extract_positions(values):
-#     xs, ys, zs = [], [], []
-#     for i in range(values.size()-1):
-#         p = values.atPose3(i).translation()
-#         xs.append(p.x())
-#         ys.append(p.y())
-#         zs.append(p.z())
-#     return np.array(xs), np.array(ys), np.array(zs)
+def extract_positions(values):
+    xs, ys, zs = [], [], []
+    for i in range(values.size()):
+        p = values.atPose3(i).translation()
 
-# xs_i, ys_i, zs_i = extract_positions(initial)
-# xs_r, ys_r, zs_r = extract_positions(result)
+        # works for both numpy and Point3
+        if isinstance(p, np.ndarray):
+            x, y, z = p
+        else:
+            x, y, z = p.x(), p.y(), p.z()
 
-# # -----------------------------
-# # Visualization
-# # -----------------------------
-# import matplotlib.pyplot as plt
+        xs.append(x)
+        ys.append(y)
+        zs.append(z)
 
-# fig = plt.figure()
-# ax = fig.add_subplot(projection='3d')
+    return np.array(xs), np.array(ys), np.array(zs)
 
-# ax.plot(xs_i, ys_i, zs_i, label="Initial", linestyle="--")
-# ax.plot(xs_r, ys_r, zs_r, label="Optimized")
+xs_i, ys_i, zs_i = extract_positions(initial)
+xs_r, ys_r, zs_r = extract_positions(result)
 
-# ax.scatter(xs_i[0], ys_i[0], zs_i[0], label="Start")
-# ax.legend()
+# -----------------------------
+# Visualization
+# -----------------------------
+import matplotlib.pyplot as plt
 
-# plt.title("Pose Graph Trajectory")
-# plt.show()
+fig = plt.figure()
+ax = fig.add_subplot(projection='3d')
+
+ax.plot(xs_i, ys_i, zs_i, label="Initial", linestyle="--")
+ax.plot(xs_r, ys_r, zs_r, label="Optimized")
+
+ax.scatter(xs_i[0], ys_i[0], zs_i[0], label="Start")
+ax.legend()
+
+plt.title("Pose Graph Trajectory")
+plt.show()
