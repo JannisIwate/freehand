@@ -158,12 +158,6 @@ def scan_plot_gt_pred(gt,pred,saved_name,color,width = 4, scatter = 8, legend_si
     plt.savefig(saved_name +'.png')
     plt.close()
 
-def save_predictions_gt(gt,pred,saved_name_pred,saved_name_gt):
-    torch.save(pred, saved_name_pred)
-    torch.save(gt, saved_name_gt)
-    #np.save(os.path.join(saved_name_pred, 'predictions.npy'), pred)
-    #np.save(os.path.join(saved_name_gt, 'labels.npy'), gt)
-
 def data_pairs_cal_label(num_frames):
     # obtain the data_pairs to compute the transformation between frames and the reference (first) frame
     

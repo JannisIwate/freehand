@@ -10,9 +10,7 @@ from gtsam import NonlinearFactorGraph, Values, noiseModel
 
 #TODO build graph from GT and compare
 
-# -----------------------------
-# Load data
-# -----------------------------
+# load data
 BASE_PATH = os.path.join(os.getcwd(), "results", "seq_len10__lr0.0001__pred_type_parameter__label_type_point")
 
 abs_poses_torch = torch.load(BASE_PATH + '/pose_data/predictions.pt')            # (N, 3, 4), element (frame), row (coordinate), column (corner)
@@ -24,26 +22,20 @@ rel_poses_torch = rel_poses_torch[1:-1] # remove last element as it is not neede
 
 N = abs_poses_torch.shape[0]
 
-# -----------------------------
-# Build graph
-# -----------------------------
+# build graph
 graph = NonlinearFactorGraph()
 initial = Values()
 
-# Noise models (tune these!)
-prior_noise = noiseModel.Diagonal.Sigmas(np.array([1e-6]*6))
-odom_noise  = noiseModel.Diagonal.Sigmas(np.array([0.05]*6))
+# gaussian noise models (tune these!)
+prior_noise = noiseModel.Diagonal.Sigmas(np.array([1e-6]*6)) # small value to anchor first pose (equals in large penalty regarding error function, first pose shall be fixed)
+odom_noise  = noiseModel.Diagonal.Sigmas(np.array([0.05]*6)) # larger value vice versa
 
-# -----------------------------
 # Insert nodes (absolute poses)
-# -----------------------------
 for i in range(N):
     pose = mat4_to_pose3(abs_poses_torch[i])
     initial.insert(i, pose)
 
-# -----------------------------
-# Anchor first pose, prior
-# -----------------------------
+# anchor first pose, prior
 graph.add(
     gtsam.PriorFactorPose3(
         0,
@@ -52,13 +44,7 @@ graph.add(
     )
 )
 
-# -----------------------------
-# Add odometry edges
-# -----------------------------
-# IMPORTANT:
-# rel_poses_torch[i] should represent T_{i -> i+1}
-# So we connect i -> i+1
-
+# add odometry edges
 for i in range(N-1): # one less edge than nodes (without prior)
     rel_pose = mat34_to_pose3(rel_poses_torch[i])
 
@@ -73,16 +59,12 @@ for i in range(N-1): # one less edge than nodes (without prior)
 
 print(f"Graph: {graph.size()} factors, {N} poses")
 
-# -----------------------------
-# Optimize (optional)
-# -----------------------------
+# optimize (optional)
 params = gtsam.LevenbergMarquardtParams()
 optimizer = gtsam.LevenbergMarquardtOptimizer(graph, initial, params)
 result = optimizer.optimize()
 
-# -----------------------------
-# Extract trajectory
-# -----------------------------
+# extract trajectory
 def extract_positions(values):
     xs, ys, zs = [], [], []
     for i in range(values.size()):
@@ -103,9 +85,7 @@ def extract_positions(values):
 xs_i, ys_i, zs_i = extract_positions(initial)
 xs_r, ys_r, zs_r = extract_positions(result)
 
-# -----------------------------
-# Visualization
-# -----------------------------
+# visualize
 import matplotlib.pyplot as plt
 
 fig = plt.figure()
