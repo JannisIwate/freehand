@@ -23,6 +23,7 @@ class SSFrameDataset():  # Subject-Scan frame loader
         """
         
         self.filename = filename_h5
+        print(self.filename)
         self.file = h5py.File(self.filename, 'r')
         self.frame_size = self.file['frame_size'][()]
         self.num_frames = self.file['num_frames'][()]

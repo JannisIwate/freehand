@@ -57,7 +57,6 @@ if not os.path.exists(os.path.join(os.getcwd(),SAVE_PATH,'features')):
 FILENAME_TEST = "fold_04.json"
 FILENAME_WEIGHTS = "best_validation_dist_model"
 
-
 ## create the validation/test set loader
 dset_test = SSFrameDataset.read_json(os.path.join(SAVE_PATH,FILENAME_TEST))
 # TODO compare with train parameters before changing to all frames
@@ -175,31 +174,31 @@ for i_scan in range(len(dset_test)):
         predictions_alltransforms_gt[idx_f0:,...] = tforms_inv[idx_f0-1] @ tforms[idx_f0:,...]
 
     # plot trajectory
-    scan_plot_gt_pred(
-        labels_allpts.detach().cpu().numpy(),
-        predictions_allpts.detach().cpu().numpy(),
-        SAVE_PATH +'/'+'plotting'+'/' + str(i_scan),
-        color='g',
-        width=4,
-        scatter=8,
-        legend_size=50,
-        legend='GT'
-    )    
+    # scan_plot_gt_pred(
+    #     labels_allpts.detach().cpu().numpy(),
+    #     predictions_allpts.detach().cpu().numpy(),
+    #     SAVE_PATH +'/'+'plotting'+'/' + str(i_scan),
+    #     color='g',
+    #     width=4,
+    #     scatter=8,
+    #     legend_size=50,
+    #     legend='GT'
+    # )    
 
-    break
+    #break
 # save collected data
-torch.save(predictions_allpts.detach().cpu(), os.path.join(SAVE_PATH +'/'+'pose_data', 'predictions.pt'))
-torch.save(labels_allpts.detach().cpu(), os.path.join(SAVE_PATH +'/'+'pose_data', 'labels.pt'))
-torch.save(predictions_alltransforms_local.detach().cpu(), os.path.join(SAVE_PATH +'/'+'pose_data', 'predictions_transforms_local.pt'))
-torch.save(predictions_alltransforms_gt.detach().cpu(), os.path.join(SAVE_PATH +'/'+'pose_data', 'predictions_transforms_gt.pt'))
-#torch.save(predictions_alltransforms_global.detach().cpu(), os.path.join(SAVE_PATH +'/'+'pose_data', 'predictions_transforms_global.pt'))
-features_allpts = torch.stack(features_allpts, dim=0)
-torch.save(features_allpts.detach().cpu(), os.path.join(SAVE_PATH +'/'+'features','features_allpts.pt'))
+# torch.save(predictions_allpts.detach().cpu(), os.path.join(SAVE_PATH +'/'+'pose_data', 'predictions.pt'))
+# torch.save(labels_allpts.detach().cpu(), os.path.join(SAVE_PATH +'/'+'pose_data', 'labels.pt'))
+# torch.save(predictions_alltransforms_local.detach().cpu(), os.path.join(SAVE_PATH +'/'+'pose_data', 'predictions_transforms_local.pt'))
+# torch.save(predictions_alltransforms_gt.detach().cpu(), os.path.join(SAVE_PATH +'/'+'pose_data', 'predictions_transforms_gt.pt'))
+# #torch.save(predictions_alltransforms_global.detach().cpu(), os.path.join(SAVE_PATH +'/'+'pose_data', 'predictions_transforms_global.pt'))
+# features_allpts = torch.stack(features_allpts, dim=0)
+# torch.save(features_allpts.detach().cpu(), os.path.join(SAVE_PATH +'/'+'features','features_allpts.pt'))
 
-print("Transform predictions shape:", predictions_alltransforms_local.shape) # (N, 4, 4)
-print("GT transforms shape:", predictions_alltransforms_gt.shape) # (N, 4, 4)
-#print("Global transform predictions shape:", predictions_alltransforms_global.shape) # (N, 4, 4)
-print("features shape:", len(features_allpts))
-print("labels_allpts shape:", labels_allpts.shape) # (N, 3, 4)
-print("predictions_allpts shape:", predictions_allpts.shape) # (N, 3, 4)
-print("GT transforms shape:", tforms.shape)
+# print("Transform predictions shape:", predictions_alltransforms_local.shape) # (N, 4, 4)
+# print("GT transforms shape:", predictions_alltransforms_gt.shape) # (N, 4, 4)
+# #print("Global transform predictions shape:", predictions_alltransforms_global.shape) # (N, 4, 4)
+# print("features shape:", len(features_allpts))
+# print("labels_allpts shape:", labels_allpts.shape) # (N, 3, 4)
+# print("predictions_allpts shape:", predictions_allpts.shape) # (N, 3, 4)
+# print("GT transforms shape:", tforms.shape)

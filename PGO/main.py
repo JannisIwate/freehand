@@ -4,11 +4,12 @@ import sys
 sys.path.append(os.getcwd())
 from graph.build_graph import *
 
+# TODO try on all samples
 
 # load data
 BASE_PATH = os.path.join(os.getcwd(), "../freehand_adapted", "results", "seq_len10__lr0.0001__pred_type_parameter__label_type_point")
 
-abs_poses_estimated = torch.load(BASE_PATH + '/pose_data/predictions.pt')            # (N, 3, 4), element (frame), row (coordinate), column (corner)
+abs_poses_estimated = torch.load(BASE_PATH + '/pose_data/predictions.pt') # (N, 3, 4), element (frame), row (coordinate), column (corner)
 rel_poses_estimated = torch.load(BASE_PATH + '/pose_data/predictions_transforms_local.pt') # (N, 4, 4)
 
 abs_poses_GT = torch.load(BASE_PATH + '/pose_data/labels.pt') # (N, 3, 4)
