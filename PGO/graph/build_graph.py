@@ -1,28 +1,9 @@
-import os
-from pathlib import Path
-import torch
 import numpy as np
 import gtsam
-import sys
 import matplotlib.pyplot as plt
-sys.path.append(os.getcwd())
-from freehand.utils import *
 from gtsam import NonlinearFactorGraph, Values, noiseModel
+from graph.utils import *
 
-#TODO build graph from GT and compare
-
-# load data
-BASE_PATH = os.path.join(os.getcwd(), "results", "seq_len10__lr0.0001__pred_type_parameter__label_type_point")
-
-abs_poses_estimated = torch.load(BASE_PATH + '/pose_data/predictions.pt')            # (N, 3, 4), element (frame), row (coordinate), column (corner)
-rel_poses_estimated = torch.load(BASE_PATH + '/pose_data/predictions_transforms_local.pt') # (N, 4, 4)
-
-abs_poses_GT = torch.load(BASE_PATH + '/pose_data/labels.pt') # (N, 3, 4)
-rel_poses_GT = torch.load(BASE_PATH + '/pose_data/predictions_transforms_gt.pt') # (N, 4, 4)
-
-# remove initial zero element
-abs_poses_estimated = abs_poses_estimated[1:]
-rel_poses_estimated = rel_poses_estimated[1:-1] # remove last element as it is not needed
 
 def extract_positions(values):
     xs, ys, zs = [], [], []
@@ -113,16 +94,3 @@ def plot_trajectories(trajectories, labels=None, colors=None):
     ax.set_title("Pose Graph Trajectories")
     ax.legend()
     plt.show()
-
-initial_estimated, optimized_estimated = build_graph(abs_poses_estimated, rel_poses_estimated, True)
-initial_GT, _ = build_graph(abs_poses_GT, rel_poses_GT, False)
-print(initial_estimated.__sizeof__())
-print(initial_GT.__sizeof__())
-
-plot_trajectories([
-    extract_positions(initial_estimated),
-    extract_positions(optimized_estimated),
-    extract_positions(initial_GT)
-    ],
-    labels=["Initial estimated", "Optimized estimated", "GT"],
-    colors=["blue", "cyan", "red"])

@@ -4,7 +4,7 @@ import numpy as np
 from gtsam import Pose3, Rot3, Point3
 
 
-BASE_PATH = os.path.join(os.getcwd(), "results", "seq_len10__lr0.0001__pred_type_parameter__label_type_point")
+BASE_PATH = os.path.join(os.getcwd(), "../freehand_adapted", "results", "seq_len10__lr0.0001__pred_type_parameter__label_type_point")
 
 abs_pose_preds = torch.load(BASE_PATH + '/pose_data/predictions.pt')
 # (N, 3, 4), x y z for four corner points

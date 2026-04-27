@@ -175,8 +175,6 @@ for i_scan in range(len(dset_test)):
         predictions_alltransforms_gt[idx_f0:,...] = tforms_inv[idx_f0-1] @ tforms[idx_f0:,...]
 
     # plot trajectory
-
-    # plot trajectory
     scan_plot_gt_pred(
         labels_allpts.detach().cpu().numpy(),
         predictions_allpts.detach().cpu().numpy(),
