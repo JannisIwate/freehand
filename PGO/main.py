@@ -4,30 +4,49 @@ import sys
 sys.path.append(os.getcwd())
 from graph.build_graph import *
 
+print(os.getcwd())
+
 # TODO try on all samples
 
 # load data
 BASE_PATH = os.path.join(os.getcwd(), "../freehand_adapted", "results", "seq_len10__lr0.0001__pred_type_parameter__label_type_point")
 
-abs_poses_estimated = torch.load(BASE_PATH + '/pose_data/predictions.pt') # (N, 3, 4), element (frame), row (coordinate), column (corner)
-rel_poses_estimated = torch.load(BASE_PATH + '/pose_data/predictions_transforms_local.pt') # (N, 4, 4)
+inbetween_transforms_pred = torch.load(BASE_PATH + '/pose_data/inbetween_transforms_pred.pt') # (N, 4, 4)
+acc_transforms_pred = torch.load(BASE_PATH + '/pose_data/acc_transforms_pred.pt') # (N, 4, 4)
 
-abs_poses_GT = torch.load(BASE_PATH + '/pose_data/labels.pt') # (N, 3, 4)
-rel_poses_GT = torch.load(BASE_PATH + '/pose_data/predictions_transforms_gt.pt') # (N, 4, 4)
+inbetween_transforms_gt = torch.load(BASE_PATH + '/pose_data/inbetween_transforms_gt.pt') # (N, 4, 4)
+acc_transforms_gt = torch.load(BASE_PATH + '/pose_data/acc_transforms_gt.pt') # (N, 4, 4)
 
-# remove initial zero element
-abs_poses_estimated = abs_poses_estimated[1:]
-rel_poses_estimated = rel_poses_estimated[1:-1] # remove last element as it is not needed
+# remove initial zero element and last element
+inbetween_transforms_pred = inbetween_transforms_pred[1:]
+acc_transforms_pred = acc_transforms_pred[1:-1]
+inbetween_transforms_gt = inbetween_transforms_gt[1:]
+acc_transforms_gt = acc_transforms_gt[1:-1]
 
 # build graphs
-initial_estimated, optimized_estimated = build_graph(abs_poses_estimated, rel_poses_estimated, True)
-initial_GT, _ = build_graph(abs_poses_GT, rel_poses_GT, False)
+graph_estimated, initial_estimated, optimized_estimated = build_graph(inbetween_transforms_pred, acc_transforms_pred, True)
+graph_GT, initial_GT, _ = build_graph(inbetween_transforms_gt, acc_transforms_gt, False)
+
+ge_error = graph_estimated.error(initial_estimated)
+ge_error = graph_estimated.error(optimized_estimated)
+ggt_error = graph_GT.error(initial_GT)
+
+print(f"Initial error ge: {ge_error}")
+print(f"Optimized error ge: {ge_error}")
+print(f"Initial error ggt: {ggt_error}")
+
+def pose_error(T_gt, T_pred):
+    delta = T_gt.between(T_pred)
+    t_err = delta.translation().norm()
+    r_err = delta.rotation().log().norm()
+    return t_err, r_err
+print(acc_transforms_gt)
+print(acc_transforms_gt.shape)
 
 # plot
 plot_trajectories([
-    extract_positions(initial_estimated),
-    extract_positions(optimized_estimated),
-    extract_positions(initial_GT)
+    extract_positions(acc_transforms_pred),
+    extract_positions(acc_transforms_gt)
     ],
-    labels=["Initial estimated", "Optimized estimated", "GT"],
-    colors=["blue", "cyan", "red"])
+    labels=["Initial estimated", "GT"],
+    colors=["blue", "red"])

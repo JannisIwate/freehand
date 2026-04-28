@@ -6,21 +6,29 @@ from graph.utils import *
 
 
 def extract_positions(values):
+    # xs, ys, zs = [], [], []
+    # for i in range(values.size()):
+    #     p = values.atPose3(i).translation()
+
+    #     # works for both numpy and Point3
+    #     if isinstance(p, np.ndarray):
+    #         x, y, z = p
+    #     else:
+    #         x, y, z = p.x(), p.y(), p.z()
+
+    #     xs.append(x)
+    #     ys.append(y)
+    #     zs.append(z)
+
+    # return np.array(xs), np.array(ys), np.array(zs)
     xs, ys, zs = [], [], []
-    for i in range(values.size()):
-        p = values.atPose3(i).translation()
 
-        # works for both numpy and Point3
-        if isinstance(p, np.ndarray):
-            x, y, z = p
-        else:
-            x, y, z = p.x(), p.y(), p.z()
-
-        xs.append(x)
-        ys.append(y)
-        zs.append(z)
-
+    for el in values:
+        xs.append(el[0, 3])
+        ys.append(el[1, 3])
+        zs.append(el[2, 3])
     return np.array(xs), np.array(ys), np.array(zs)
+
 
 def build_graph(abs_poses, rel_poses, optimize = True):
     N = abs_poses.shape[0]
@@ -49,7 +57,7 @@ def build_graph(abs_poses, rel_poses, optimize = True):
 
     # add odometry edges
     for i in range(N-1): # one less edge than nodes (without prior)
-        rel_pose = mat34_to_pose3(rel_poses[i])
+        rel_pose = mat4_to_pose3(rel_poses[i])
 
         graph.add(
             gtsam.BetweenFactorPose3(
@@ -69,7 +77,7 @@ def build_graph(abs_poses, rel_poses, optimize = True):
         optimizer = gtsam.LevenbergMarquardtOptimizer(graph, initial, params)
         optimized = optimizer.optimize()
 
-    return initial, optimized
+    return graph, initial, optimized
 
 def plot_trajectories(trajectories, labels=None, colors=None):
 
